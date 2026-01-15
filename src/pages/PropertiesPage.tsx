@@ -4,9 +4,10 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { PropertyCard } from '@/components/property/PropertyCard';
 import { PropertyFilters } from '@/components/property/PropertyFilters';
-import { mockProperties } from '@/data/mockProperties';
+import { useDbProperties, DbProperty } from '@/hooks/useProperties';
+import { Property } from '@/types/property';
 import { motion } from 'framer-motion';
-import { Building2, SortAsc } from 'lucide-react';
+import { Building2, SortAsc, Loader2 } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -16,6 +17,41 @@ import {
 } from '@/components/ui/select';
 
 type SortOption = 'price-asc' | 'price-desc' | 'discount' | 'recent';
+
+// Converter DbProperty para Property (formato do frontend)
+function dbPropertyToProperty(dbProp: DbProperty): Property {
+  return {
+    id: dbProp.id,
+    title: dbProp.title,
+    type: dbProp.type as Property['type'],
+    status: dbProp.status as Property['status'],
+    price: dbProp.price,
+    originalPrice: dbProp.original_price || undefined,
+    discount: dbProp.discount || undefined,
+    address: {
+      street: dbProp.address_street || undefined,
+      neighborhood: dbProp.address_neighborhood,
+      city: dbProp.address_city,
+      state: dbProp.address_state,
+      zipCode: dbProp.address_zipcode || undefined,
+    },
+    features: {
+      bedrooms: dbProp.bedrooms || undefined,
+      bathrooms: dbProp.bathrooms || undefined,
+      area: dbProp.area,
+      parkingSpaces: dbProp.parking_spaces || undefined,
+    },
+    images: dbProp.images || [],
+    description: dbProp.description || undefined,
+    acceptsFGTS: dbProp.accepts_fgts || false,
+    acceptsFinancing: dbProp.accepts_financing || false,
+    auctionDate: dbProp.auction_date || undefined,
+    modality: dbProp.modality || undefined,
+    caixaLink: dbProp.caixa_link || undefined,
+    createdAt: dbProp.created_at,
+    soldAt: dbProp.sold_at || undefined,
+  };
+}
 
 const PropertiesPage = () => {
   const [searchParams] = useSearchParams();
@@ -30,9 +66,18 @@ const PropertiesPage = () => {
   });
 
   const [sortBy, setSortBy] = useState<SortOption>('recent');
+  
+  // Buscar imóveis do banco de dados
+  const { data: dbProperties, isLoading, error } = useDbProperties();
+  
+  // Converter para o formato do frontend
+  const properties = useMemo(() => {
+    if (!dbProperties) return [];
+    return dbProperties.map(dbPropertyToProperty);
+  }, [dbProperties]);
 
   const filteredProperties = useMemo(() => {
-    let result = [...mockProperties];
+    let result = [...properties];
 
     // Filter by search
     if (filters.search) {
@@ -95,7 +140,7 @@ const PropertiesPage = () => {
     });
 
     return result;
-  }, [filters, sortBy]);
+  }, [properties, filters, sortBy]);
 
   const availableCount = filteredProperties.filter((p) => p.status === 'available').length;
   const soldCount = filteredProperties.filter((p) => p.status === 'sold').length;
@@ -161,7 +206,26 @@ const PropertiesPage = () => {
           </div>
 
           {/* Properties Grid */}
-          {filteredProperties.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2 text-muted-foreground">Carregando imóveis...</span>
+            </div>
+          ) : error ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-16"
+            >
+              <Building2 className="h-16 w-16 text-destructive/30 mx-auto mb-4" />
+              <h3 className="font-heading font-semibold text-lg mb-2">
+                Erro ao carregar imóveis
+              </h3>
+              <p className="text-muted-foreground">
+                Verifique a conexão com o banco de dados.
+              </p>
+            </motion.div>
+          ) : filteredProperties.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredProperties.map((property, index) => (
                 <PropertyCard key={property.id} property={property} index={index} />
@@ -178,7 +242,10 @@ const PropertiesPage = () => {
                 Nenhum imóvel encontrado
               </h3>
               <p className="text-muted-foreground">
-                Tente ajustar os filtros para encontrar mais opções.
+                {properties.length === 0 
+                  ? 'Importe imóveis no painel administrativo para exibi-los aqui.'
+                  : 'Tente ajustar os filtros para encontrar mais opções.'
+                }
               </p>
             </motion.div>
           )}

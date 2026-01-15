@@ -1,16 +1,59 @@
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader2, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PropertyCard } from '@/components/property/PropertyCard';
-import { mockProperties } from '@/data/mockProperties';
+import { useDbProperties, DbProperty } from '@/hooks/useProperties';
+import { Property } from '@/types/property';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import { useMemo } from 'react';
+
+// Converter DbProperty para Property (formato do frontend)
+function dbPropertyToProperty(dbProp: DbProperty): Property {
+  return {
+    id: dbProp.id,
+    title: dbProp.title,
+    type: dbProp.type as Property['type'],
+    status: dbProp.status as Property['status'],
+    price: dbProp.price,
+    originalPrice: dbProp.original_price || undefined,
+    discount: dbProp.discount || undefined,
+    address: {
+      street: dbProp.address_street || undefined,
+      neighborhood: dbProp.address_neighborhood,
+      city: dbProp.address_city,
+      state: dbProp.address_state,
+      zipCode: dbProp.address_zipcode || undefined,
+    },
+    features: {
+      bedrooms: dbProp.bedrooms || undefined,
+      bathrooms: dbProp.bathrooms || undefined,
+      area: dbProp.area,
+      parkingSpaces: dbProp.parking_spaces || undefined,
+    },
+    images: dbProp.images || [],
+    description: dbProp.description || undefined,
+    acceptsFGTS: dbProp.accepts_fgts || false,
+    acceptsFinancing: dbProp.accepts_financing || false,
+    auctionDate: dbProp.auction_date || undefined,
+    modality: dbProp.modality || undefined,
+    caixaLink: dbProp.caixa_link || undefined,
+    createdAt: dbProp.created_at,
+    soldAt: dbProp.sold_at || undefined,
+  };
+}
 
 export function FeaturedProperties() {
-  // Get top 6 available properties sorted by discount
-  const featuredProperties = mockProperties
-    .filter((p) => p.status === 'available')
-    .sort((a, b) => (b.discount || 0) - (a.discount || 0))
-    .slice(0, 6);
+  const { data: dbProperties, isLoading } = useDbProperties();
+  
+  // Converter e ordenar por desconto
+  const featuredProperties = useMemo(() => {
+    if (!dbProperties) return [];
+    return dbProperties
+      .map(dbPropertyToProperty)
+      .filter((p) => p.status === 'available')
+      .sort((a, b) => (b.discount || 0) - (a.discount || 0))
+      .slice(0, 6);
+  }, [dbProperties]);
 
   return (
     <section className="py-16 md:py-24 bg-background">
@@ -41,11 +84,24 @@ export function FeaturedProperties() {
           </Link>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredProperties.map((property, index) => (
-            <PropertyCard key={property.id} property={property} index={index} />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : featuredProperties.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {featuredProperties.map((property, index) => (
+              <PropertyCard key={property.id} property={property} index={index} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <Building2 className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+            <p className="text-muted-foreground">
+              Nenhum imóvel disponível ainda. Importe imóveis no painel administrativo.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );
