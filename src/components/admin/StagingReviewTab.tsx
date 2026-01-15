@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  useDbProperties, 
+  useDbProperties,
+  useSeedExampleProperties,
 } from '@/hooks/useProperties';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,8 @@ import {
   Car,
   Ruler,
   ExternalLink,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
 import { NORTHEAST_STATES, PROPERTY_TYPES, PRICE_RANGES } from '@/types/property';
 import { ManualPropertyForm } from './ManualPropertyForm';
@@ -57,6 +60,7 @@ export function StagingReviewTab() {
   const [showFilters, setShowFilters] = useState(true);
 
   const { data: properties, isLoading, refetch } = useDbProperties();
+  const seedExampleMutation = useSeedExampleProperties();
 
   // Filtrar propriedades
   const filteredProperties = useMemo(() => {
@@ -108,6 +112,40 @@ export function StagingReviewTab() {
 
   return (
     <div className="space-y-6">
+      {/* Seed Example Properties Button */}
+      {(!properties || properties.length === 0) && (
+        <Card className="border-dashed">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <Sparkles className="h-12 w-12 mx-auto text-primary" />
+              <div>
+                <h3 className="font-semibold">Comece com exemplos</h3>
+                <p className="text-sm text-muted-foreground">
+                  Adicione imóveis de exemplo para testar o sistema
+                </p>
+              </div>
+              <Button
+                onClick={() => seedExampleMutation.mutate()}
+                disabled={seedExampleMutation.isPending}
+                className="hero-gradient"
+              >
+                {seedExampleMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Adicionando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Adicionar Imóveis de Exemplo
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Manual Property Form */}
       <ManualPropertyForm />
 
