@@ -1,0 +1,253 @@
+import { Property } from '@/types/property';
+
+// Imóveis de exemplo para exibição na home
+// Estes são dados fictícios para demonstrar o layout do site
+
+export const EXAMPLE_PROPERTIES: Property[] = [
+  // 4 Imóveis Disponíveis
+  {
+    id: 'ex-1',
+    title: 'Casa 3 Quartos com Piscina em Fortaleza',
+    type: 'casa',
+    status: 'available',
+    price: 285000,
+    originalPrice: 380000,
+    discount: 25,
+    address: {
+      street: 'Rua das Palmeiras, 450',
+      neighborhood: 'Aldeota',
+      city: 'Fortaleza',
+      state: 'CE',
+      zipCode: '60150-000',
+    },
+    features: {
+      bedrooms: 3,
+      bathrooms: 2,
+      area: 180,
+      parkingSpaces: 2,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+    ],
+    description: 'Excelente casa com piscina, área gourmet e acabamento de primeira. Localização privilegiada próxima a escolas e comércio.',
+    acceptsFGTS: true,
+    acceptsFinancing: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'ex-2',
+    title: 'Apartamento 2 Quartos Vista Mar',
+    type: 'apartamento',
+    status: 'available',
+    price: 195000,
+    originalPrice: 260000,
+    discount: 25,
+    address: {
+      street: 'Av. Beira Mar, 2500',
+      neighborhood: 'Meireles',
+      city: 'Fortaleza',
+      state: 'CE',
+      zipCode: '60165-121',
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 1,
+      area: 75,
+      parkingSpaces: 1,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80',
+    ],
+    description: 'Apartamento com vista panorâmica para o mar. Prédio com área de lazer completa: piscina, academia e salão de festas.',
+    acceptsFGTS: true,
+    acceptsFinancing: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'ex-3',
+    title: 'Casa Duplex 4 Suítes em Recife',
+    type: 'casa',
+    status: 'available',
+    price: 420000,
+    originalPrice: 550000,
+    discount: 24,
+    address: {
+      street: 'Rua do Sol, 100',
+      neighborhood: 'Boa Viagem',
+      city: 'Recife',
+      state: 'PE',
+      zipCode: '51020-000',
+    },
+    features: {
+      bedrooms: 4,
+      bathrooms: 4,
+      area: 280,
+      parkingSpaces: 3,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
+      'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80',
+    ],
+    description: 'Casa duplex de alto padrão com 4 suítes, piscina aquecida e churrasqueira. Condomínio fechado com segurança 24h.',
+    acceptsFGTS: false,
+    acceptsFinancing: true,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'ex-4',
+    title: 'Terreno 500m² Pronto para Construir',
+    type: 'terreno',
+    status: 'available',
+    price: 89000,
+    originalPrice: 120000,
+    discount: 26,
+    address: {
+      neighborhood: 'Piatã',
+      city: 'Salvador',
+      state: 'BA',
+      zipCode: '41650-000',
+    },
+    features: {
+      area: 500,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
+    ],
+    description: 'Terreno plano, excelente para construção. Documentação 100% regularizada. Água e energia já disponíveis.',
+    acceptsFGTS: false,
+    acceptsFinancing: true,
+    createdAt: new Date().toISOString(),
+  },
+  // 4 Imóveis Vendidos
+  {
+    id: 'ex-5',
+    title: 'Apartamento Reformado no Centro',
+    type: 'apartamento',
+    status: 'sold',
+    price: 175000,
+    originalPrice: 230000,
+    discount: 24,
+    address: {
+      street: 'Rua das Flores, 200',
+      neighborhood: 'Centro',
+      city: 'Fortaleza',
+      state: 'CE',
+      zipCode: '60060-000',
+    },
+    features: {
+      bedrooms: 2,
+      bathrooms: 1,
+      area: 65,
+      parkingSpaces: 1,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
+    ],
+    description: 'Apartamento vendido através da nossa plataforma. Cliente satisfeito com o negócio!',
+    acceptsFGTS: true,
+    acceptsFinancing: true,
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    soldAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ex-6',
+    title: 'Casa Próximo à Praia do Futuro',
+    type: 'casa',
+    status: 'sold',
+    price: 320000,
+    originalPrice: 400000,
+    discount: 20,
+    address: {
+      street: 'Av. Zezé Diogo, 1500',
+      neighborhood: 'Praia do Futuro',
+      city: 'Fortaleza',
+      state: 'CE',
+      zipCode: '60182-000',
+    },
+    features: {
+      bedrooms: 3,
+      bathrooms: 2,
+      area: 200,
+      parkingSpaces: 2,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80',
+    ],
+    description: 'Casa a 100m do mar, vendida rapidamente. Oportunidade aproveitada!',
+    acceptsFGTS: true,
+    acceptsFinancing: true,
+    createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+    soldAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ex-7',
+    title: 'Cobertura Duplex no Meireles',
+    type: 'apartamento',
+    status: 'sold',
+    price: 480000,
+    originalPrice: 600000,
+    discount: 20,
+    address: {
+      street: 'Av. Abolição, 3000',
+      neighborhood: 'Meireles',
+      city: 'Fortaleza',
+      state: 'CE',
+      zipCode: '60165-080',
+    },
+    features: {
+      bedrooms: 4,
+      bathrooms: 3,
+      area: 220,
+      parkingSpaces: 3,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80',
+    ],
+    description: 'Cobertura duplex com terraço e vista privilegiada. Vendida em tempo recorde!',
+    acceptsFGTS: false,
+    acceptsFinancing: true,
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    soldAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ex-8',
+    title: 'Casa em Condomínio Fechado',
+    type: 'casa',
+    status: 'sold',
+    price: 350000,
+    originalPrice: 450000,
+    discount: 22,
+    address: {
+      street: 'Rua das Acácias, 50',
+      neighborhood: 'Eusébio',
+      city: 'Eusébio',
+      state: 'CE',
+      zipCode: '61760-000',
+    },
+    features: {
+      bedrooms: 3,
+      bathrooms: 2,
+      area: 160,
+      parkingSpaces: 2,
+    },
+    images: [
+      'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&q=80',
+    ],
+    description: 'Casa em condomínio com infraestrutura completa. Cliente muito satisfeito!',
+    acceptsFGTS: true,
+    acceptsFinancing: true,
+    createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+    soldAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
+export function getAvailableProperties(): Property[] {
+  return EXAMPLE_PROPERTIES.filter(p => p.status === 'available');
+}
+
+export function getSoldProperties(): Property[] {
+  return EXAMPLE_PROPERTIES.filter(p => p.status === 'sold');
+}
