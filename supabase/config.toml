@@ -1,1 +1,10 @@
 project_id = "elciyzqkywhutvzcvjcb"
+
+[functions.scrape-caixa]
+verify_jwt = false
+
+[functions.manage-staging]
+verify_jwt = false
+
+[functions.import-property]
+verify_jwt = false
