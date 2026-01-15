@@ -1,10 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { mockProperties } from '@/data/mockProperties';
+import { useDbProperties, DbProperty } from '@/hooks/useProperties';
+import { Property } from '@/types/property';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { motion } from 'framer-motion';
+import { useMemo } from 'react';
 import {
   MapPin,
   Bed,
@@ -19,11 +21,65 @@ import {
   ExternalLink,
   Phone,
   MessageCircle,
+  Loader2,
 } from 'lucide-react';
+
+// Converter DbProperty para Property (formato do frontend)
+function dbPropertyToProperty(dbProp: DbProperty): Property {
+  return {
+    id: dbProp.id,
+    title: dbProp.title,
+    type: dbProp.type as Property['type'],
+    status: dbProp.status as Property['status'],
+    price: dbProp.price,
+    originalPrice: dbProp.original_price || undefined,
+    discount: dbProp.discount || undefined,
+    address: {
+      street: dbProp.address_street || undefined,
+      neighborhood: dbProp.address_neighborhood,
+      city: dbProp.address_city,
+      state: dbProp.address_state,
+      zipCode: dbProp.address_zipcode || undefined,
+    },
+    features: {
+      bedrooms: dbProp.bedrooms || undefined,
+      bathrooms: dbProp.bathrooms || undefined,
+      area: dbProp.area,
+      parkingSpaces: dbProp.parking_spaces || undefined,
+    },
+    images: dbProp.images || [],
+    description: dbProp.description || undefined,
+    acceptsFGTS: dbProp.accepts_fgts || false,
+    acceptsFinancing: dbProp.accepts_financing || false,
+    auctionDate: dbProp.auction_date || undefined,
+    modality: dbProp.modality || undefined,
+    caixaLink: dbProp.caixa_link || undefined,
+    createdAt: dbProp.created_at,
+    soldAt: dbProp.sold_at || undefined,
+  };
+}
 
 const PropertyDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const property = mockProperties.find((p) => p.id === id);
+  const { data: dbProperties, isLoading } = useDbProperties();
+  
+  const property = useMemo(() => {
+    if (!dbProperties) return undefined;
+    const found = dbProperties.find((p) => p.id === id);
+    return found ? dbPropertyToProperty(found) : undefined;
+  }, [dbProperties, id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 container py-16 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!property) {
     return (

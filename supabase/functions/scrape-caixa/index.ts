@@ -102,12 +102,21 @@ Deno.serve(async (req) => {
       console.error('Log creation error:', logError);
     }
 
+    // Filtrar estados
+    let filterStates: string[] = [];
+    if (states && states.length > 0) {
+      filterStates = states.map((s: string) => s.toUpperCase());
+    } else {
+      filterStates = config.states?.map((s: string) => s.toUpperCase()) || NORTHEAST_STATES;
+    }
+    
     // Se tem URL manual, buscar dessa URL específica
     if (manualUrl) {
       console.log('🔗 Buscando imóveis da URL manual:', manualUrl);
+      console.log('📍 Estados para filtrar:', filterStates.join(', '));
       
       try {
-        const result = await scrapeManualUrl(manualUrl, firecrawlApiKey, supabase);
+        const result = await scrapeManualUrl(manualUrl, firecrawlApiKey, supabase, filterStates);
         
         // Atualizar log
         if (logEntry) {
@@ -161,13 +170,7 @@ Deno.serve(async (req) => {
     const allPropertyLinks: PropertyLink[] = [];
     const seenPropertyIds = new Set<string>();
     
-    // Filtrar estados
-    let filterStates: string[] = [];
-    if (states && states.length > 0) {
-      filterStates = states.map((s: string) => s.toUpperCase());
-    } else {
-      filterStates = config.states?.map((s: string) => s.toUpperCase()) || NORTHEAST_STATES;
-    }
+    console.log(`📍 Estados filtrados: ${filterStates.join(', ')}`);
     
     console.log(`📍 Estados filtrados: ${filterStates.join(', ')}`);
     
@@ -499,8 +502,9 @@ Deno.serve(async (req) => {
 });
 
 // Função para scraping de URL manual
-async function scrapeManualUrl(url: string, apiKey: string, supabase: any): Promise<{ found: number; new: number }> {
+async function scrapeManualUrl(url: string, apiKey: string, supabase: any, filterStates?: string[]): Promise<{ found: number; new: number }> {
   console.log('Scraping URL manual:', url);
+  console.log('Estados para filtrar:', filterStates || 'Todos (Nordeste)');
   
   const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
     method: 'POST',
@@ -523,11 +527,14 @@ async function scrapeManualUrl(url: string, apiKey: string, supabase: any): Prom
   const scrapeData = await scrapeResponse.json();
   const html = scrapeData.data?.html || scrapeData.html || '';
   
+  // Usar estados filtrados se passados, senão usar todos do Nordeste
+  const statesToFilter = filterStates && filterStates.length > 0 ? filterStates : NORTHEAST_STATES;
+  
   // Tentar extrair links de listagem primeiro
-  const propertyLinks = extractPropertyLinks(html, NORTHEAST_STATES);
+  const propertyLinks = extractPropertyLinks(html, statesToFilter);
   
   if (propertyLinks.length > 0) {
-    console.log(`Encontrados ${propertyLinks.length} links de imóveis`);
+    console.log(`Encontrados ${propertyLinks.length} links de imóveis (filtrados por: ${statesToFilter.join(', ')})`);
     
     // Buscar IDs existentes
     const existingIds = new Set<string>();

@@ -1,12 +1,65 @@
 import { PropertyCard } from '@/components/property/PropertyCard';
-import { mockProperties } from '@/data/mockProperties';
+import { useDbProperties, DbProperty } from '@/hooks/useProperties';
+import { Property } from '@/types/property';
 import { motion } from 'framer-motion';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, Loader2 } from 'lucide-react';
+import { useMemo } from 'react';
+
+// Converter DbProperty para Property (formato do frontend)
+function dbPropertyToProperty(dbProp: DbProperty): Property {
+  return {
+    id: dbProp.id,
+    title: dbProp.title,
+    type: dbProp.type as Property['type'],
+    status: dbProp.status as Property['status'],
+    price: dbProp.price,
+    originalPrice: dbProp.original_price || undefined,
+    discount: dbProp.discount || undefined,
+    address: {
+      street: dbProp.address_street || undefined,
+      neighborhood: dbProp.address_neighborhood,
+      city: dbProp.address_city,
+      state: dbProp.address_state,
+      zipCode: dbProp.address_zipcode || undefined,
+    },
+    features: {
+      bedrooms: dbProp.bedrooms || undefined,
+      bathrooms: dbProp.bathrooms || undefined,
+      area: dbProp.area,
+      parkingSpaces: dbProp.parking_spaces || undefined,
+    },
+    images: dbProp.images || [],
+    description: dbProp.description || undefined,
+    acceptsFGTS: dbProp.accepts_fgts || false,
+    acceptsFinancing: dbProp.accepts_financing || false,
+    auctionDate: dbProp.auction_date || undefined,
+    modality: dbProp.modality || undefined,
+    caixaLink: dbProp.caixa_link || undefined,
+    createdAt: dbProp.created_at,
+    soldAt: dbProp.sold_at || undefined,
+  };
+}
 
 export function SoldProperties() {
-  const soldProperties = mockProperties
-    .filter((p) => p.status === 'sold')
-    .slice(0, 3);
+  const { data: dbProperties, isLoading } = useDbProperties();
+  
+  const soldProperties = useMemo(() => {
+    if (!dbProperties) return [];
+    return dbProperties
+      .map(dbPropertyToProperty)
+      .filter((p) => p.status === 'sold')
+      .slice(0, 3);
+  }, [dbProperties]);
+
+  if (isLoading) {
+    return (
+      <section className="py-16 md:py-24 bg-background">
+        <div className="container flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </section>
+    );
+  }
 
   if (soldProperties.length === 0) return null;
 
