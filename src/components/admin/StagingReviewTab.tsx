@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   useDbProperties,
-  useSeedExampleProperties,
+  useCreateProperty,
 } from '@/hooks/useProperties';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,11 +27,10 @@ import {
   Car,
   Ruler,
   ExternalLink,
-  Sparkles,
-  Loader2,
 } from 'lucide-react';
 import { NORTHEAST_STATES, PROPERTY_TYPES, PRICE_RANGES } from '@/types/property';
 import { ManualPropertyForm } from './ManualPropertyForm';
+import { supabase } from '@/integrations/supabase/client';
 
 const formatPrice = (price: number | null) => {
   if (!price) return 'N/A';
@@ -52,15 +51,259 @@ const getStateLabel = (state: string | null) => {
   return found ? found.label : state || 'N/A';
 };
 
+// Imóveis de exemplo para popular inicialmente
+const EXAMPLE_PROPERTIES = [
+  // 4 Disponíveis
+  {
+    title: 'Casa 3 Quartos com Piscina em Fortaleza',
+    type: 'casa',
+    status: 'available',
+    price: 285000,
+    original_price: 380000,
+    discount: 25,
+    address_street: 'Rua das Palmeiras, 450',
+    address_neighborhood: 'Aldeota',
+    address_city: 'Fortaleza',
+    address_state: 'CE',
+    address_zipcode: '60150-000',
+    bedrooms: 3,
+    bathrooms: 2,
+    area: 180,
+    parking_spaces: 2,
+    description: 'Excelente casa com piscina, área gourmet e acabamento de primeira. Localização privilegiada próxima a escolas e comércio.',
+    images: [
+      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
+      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&q=80',
+    ],
+    accepts_fgts: true,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Apartamento 2 Quartos Vista Mar',
+    type: 'apartamento',
+    status: 'available',
+    price: 195000,
+    original_price: 260000,
+    discount: 25,
+    address_street: 'Av. Beira Mar, 2500',
+    address_neighborhood: 'Meireles',
+    address_city: 'Fortaleza',
+    address_state: 'CE',
+    address_zipcode: '60165-121',
+    bedrooms: 2,
+    bathrooms: 1,
+    area: 75,
+    parking_spaces: 1,
+    description: 'Apartamento com vista panorâmica para o mar. Prédio com área de lazer completa: piscina, academia e salão de festas.',
+    images: [
+      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80',
+      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800&q=80',
+    ],
+    accepts_fgts: true,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Casa Duplex 4 Suítes em Recife',
+    type: 'casa',
+    status: 'available',
+    price: 420000,
+    original_price: 550000,
+    discount: 24,
+    address_street: 'Rua do Sol, 100',
+    address_neighborhood: 'Boa Viagem',
+    address_city: 'Recife',
+    address_state: 'PE',
+    address_zipcode: '51020-000',
+    bedrooms: 4,
+    bathrooms: 4,
+    area: 280,
+    parking_spaces: 3,
+    description: 'Casa duplex de alto padrão com 4 suítes, piscina aquecida e churrasqueira. Condomínio fechado com segurança 24h.',
+    images: [
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&q=80',
+      'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80',
+    ],
+    accepts_fgts: false,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Terreno 500m² Pronto para Construir',
+    type: 'terreno',
+    status: 'available',
+    price: 89000,
+    original_price: 120000,
+    discount: 26,
+    address_street: null,
+    address_neighborhood: 'Piatã',
+    address_city: 'Salvador',
+    address_state: 'BA',
+    address_zipcode: '41650-000',
+    bedrooms: null,
+    bathrooms: null,
+    area: 500,
+    parking_spaces: null,
+    description: 'Terreno plano, excelente para construção. Documentação 100% regularizada. Água e energia já disponíveis.',
+    images: [
+      'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&q=80',
+    ],
+    accepts_fgts: false,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  // 4 Vendidos
+  {
+    title: 'Apartamento Centro - VENDIDO',
+    type: 'apartamento',
+    status: 'sold',
+    price: 175000,
+    original_price: 230000,
+    discount: 24,
+    address_street: 'Rua das Flores, 200',
+    address_neighborhood: 'Centro',
+    address_city: 'Fortaleza',
+    address_state: 'CE',
+    address_zipcode: '60060-000',
+    bedrooms: 2,
+    bathrooms: 1,
+    area: 65,
+    parking_spaces: 1,
+    description: 'Apartamento vendido através da nossa plataforma. Cliente satisfeito!',
+    images: [
+      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&q=80',
+    ],
+    accepts_fgts: true,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Casa Praia do Futuro - VENDIDO',
+    type: 'casa',
+    status: 'sold',
+    price: 320000,
+    original_price: 400000,
+    discount: 20,
+    address_street: 'Av. Zezé Diogo, 1500',
+    address_neighborhood: 'Praia do Futuro',
+    address_city: 'Fortaleza',
+    address_state: 'CE',
+    address_zipcode: '60182-000',
+    bedrooms: 3,
+    bathrooms: 2,
+    area: 200,
+    parking_spaces: 2,
+    description: 'Casa a 100m do mar, vendida rapidamente. Oportunidade aproveitada!',
+    images: [
+      'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800&q=80',
+    ],
+    accepts_fgts: true,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Cobertura Duplex Meireles - VENDIDO',
+    type: 'apartamento',
+    status: 'sold',
+    price: 480000,
+    original_price: 600000,
+    discount: 20,
+    address_street: 'Av. Abolição, 3000',
+    address_neighborhood: 'Meireles',
+    address_city: 'Fortaleza',
+    address_state: 'CE',
+    address_zipcode: '60165-080',
+    bedrooms: 4,
+    bathrooms: 3,
+    area: 220,
+    parking_spaces: 3,
+    description: 'Cobertura duplex com terraço e vista privilegiada. Vendida em tempo recorde!',
+    images: [
+      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80',
+    ],
+    accepts_fgts: false,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+  {
+    title: 'Casa Condomínio Fechado - VENDIDO',
+    type: 'casa',
+    status: 'sold',
+    price: 350000,
+    original_price: 450000,
+    discount: 22,
+    address_street: 'Rua das Acácias, 50',
+    address_neighborhood: 'Eusébio',
+    address_city: 'Eusébio',
+    address_state: 'CE',
+    address_zipcode: '61760-000',
+    bedrooms: 3,
+    bathrooms: 2,
+    area: 160,
+    parking_spaces: 2,
+    description: 'Casa em condomínio com infraestrutura completa. Cliente muito satisfeito!',
+    images: [
+      'https://images.unsplash.com/photo-1605276374104-dee2a0ed3cd6?w=800&q=80',
+    ],
+    accepts_fgts: true,
+    accepts_financing: true,
+    auction_date: null,
+    modality: null,
+    caixa_link: null,
+  },
+];
+
 export function StagingReviewTab() {
   const [searchQuery, setSearchQuery] = useState('');
   const [stateFilter, setStateFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [priceFilter, setPriceFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(true);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const { data: properties, isLoading, refetch } = useDbProperties();
-  const seedExampleMutation = useSeedExampleProperties();
+
+  // Inserir imóveis de exemplo se o banco estiver vazio
+  useEffect(() => {
+    const seedIfEmpty = async () => {
+      if (properties && properties.length === 0 && !isSeeding) {
+        setIsSeeding(true);
+        try {
+          const { error } = await supabase
+            .from('properties')
+            .insert(EXAMPLE_PROPERTIES);
+          
+          if (error) {
+            console.error('Erro ao inserir exemplos:', error);
+          } else {
+            refetch();
+          }
+        } catch (err) {
+          console.error('Erro:', err);
+        } finally {
+          setIsSeeding(false);
+        }
+      }
+    };
+
+    seedIfEmpty();
+  }, [properties, isSeeding, refetch]);
 
   // Filtrar propriedades
   const filteredProperties = useMemo(() => {
@@ -112,40 +355,6 @@ export function StagingReviewTab() {
 
   return (
     <div className="space-y-6">
-      {/* Seed Example Properties Button */}
-      {(!properties || properties.length === 0) && (
-        <Card className="border-dashed">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-4">
-              <Sparkles className="h-12 w-12 mx-auto text-primary" />
-              <div>
-                <h3 className="font-semibold">Comece com exemplos</h3>
-                <p className="text-sm text-muted-foreground">
-                  Adicione imóveis de exemplo para testar o sistema
-                </p>
-              </div>
-              <Button
-                onClick={() => seedExampleMutation.mutate()}
-                disabled={seedExampleMutation.isPending}
-                className="hero-gradient"
-              >
-                {seedExampleMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Adicionando...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Adicionar Imóveis de Exemplo
-                  </>
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Manual Property Form */}
       <ManualPropertyForm />
 
@@ -184,7 +393,7 @@ export function StagingReviewTab() {
         >
           <Card>
             <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-amber-600">
+              <div className="text-2xl font-bold text-destructive">
                 {properties?.filter(p => p.status === 'sold').length || 0}
               </div>
               <p className="text-xs text-muted-foreground">Vendidos</p>
@@ -365,10 +574,12 @@ export function StagingReviewTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading || isSeeding ? (
             <div className="text-center py-12">
               <RefreshCw className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-              <p className="mt-2 text-muted-foreground">Carregando imóveis...</p>
+              <p className="mt-2 text-muted-foreground">
+                {isSeeding ? 'Adicionando imóveis de exemplo...' : 'Carregando imóveis...'}
+              </p>
             </div>
           ) : filteredProperties.length === 0 ? (
             <div className="text-center py-12">
@@ -383,7 +594,9 @@ export function StagingReviewTab() {
                   key={property.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow"
+                  className={`border rounded-lg overflow-hidden bg-card hover:shadow-md transition-shadow ${
+                    property.status === 'sold' ? 'grayscale opacity-80' : ''
+                  }`}
                 >
                   {/* Image */}
                   <div className="aspect-video relative bg-muted">
@@ -400,12 +613,12 @@ export function StagingReviewTab() {
                     )}
                     <Badge 
                       className="absolute top-2 left-2"
-                      variant={property.status === 'available' ? 'default' : 'secondary'}
+                      variant={property.status === 'available' ? 'default' : 'destructive'}
                     >
-                      {property.status === 'available' ? 'Disponível' : 'Vendido'}
+                      {property.status === 'available' ? 'Disponível' : 'VENDIDO'}
                     </Badge>
-                    {property.discount && property.discount > 0 && (
-                      <Badge className="absolute top-2 right-2 bg-destructive">
+                    {property.discount && property.discount > 0 && property.status === 'available' && (
+                      <Badge className="absolute top-2 right-2 bg-accent text-accent-foreground">
                         -{property.discount}%
                       </Badge>
                     )}
@@ -443,7 +656,7 @@ export function StagingReviewTab() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="font-bold text-primary">
+                      <div className={`font-bold ${property.status === 'sold' ? 'text-muted-foreground' : 'text-primary'}`}>
                         {formatPrice(property.price)}
                       </div>
                       {property.caixa_link && (
