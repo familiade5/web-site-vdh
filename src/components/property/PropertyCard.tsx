@@ -127,11 +127,12 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
+      className={isSold ? 'grayscale' : ''}
     >
       <Link
         to={`/imovel/${property.id}`}
         className={`block group relative bg-card rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 ${
-          isSold ? 'opacity-75' : ''
+          isSold ? 'opacity-80' : ''
         }`}
       >
         {/* Image Container */}
@@ -139,9 +140,7 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
           <img
             src={propertyImage}
             alt={property.title}
-            className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-              isSold ? 'grayscale' : ''
-            }`}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             onError={(e) => {
               // Se a imagem falhar ao carregar, usar fallback
               (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
@@ -151,11 +150,12 @@ export function PropertyCard({ property, index = 0 }: PropertyCardProps) {
           {/* Overlay Gradient */}
           <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-transparent to-transparent" />
 
-          {/* Sold Badge */}
+          {/* Sold Badge - Prominent diagonal banner */}
           {isSold && (
-            <div className="absolute inset-0 sold-overlay flex items-center justify-center">
-              <div className="bg-sold text-sold-foreground px-6 py-2 rounded-lg font-heading font-bold text-lg uppercase tracking-wider rotate-[-5deg] shadow-lg">
-                Vendido
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 bg-foreground/20" />
+              <div className="relative bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 font-heading font-bold text-xl uppercase tracking-widest rotate-[-8deg] shadow-2xl border-2 border-white/30">
+                VENDIDO
               </div>
             </div>
           )}
