@@ -27,10 +27,12 @@ import {
   FileText,
   Sparkles,
   ExternalLink,
+  AlertCircle,
 } from 'lucide-react';
 import { NORTHEAST_STATES, PROPERTY_TYPES } from '@/types/property';
 import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
+import { importPropertyFromUrl, ImportedPropertyData } from '@/lib/api/property-import';
 
 type TabType = 'manual' | 'import';
 
@@ -84,8 +86,9 @@ export function ManualPropertyForm() {
   
   // Import by link state
   const [importUrl, setImportUrl] = useState('');
-  const [importedData, setImportedData] = useState<PropertyFormData | null>(null);
+  const [importedData, setImportedData] = useState<ImportedPropertyData | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const handleChange = (field: keyof PropertyFormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -105,6 +108,8 @@ export function ManualPropertyForm() {
     setFormData(initialFormData);
     setShowForm(false);
     setIsSubmitting(false);
+    setImportedData(null);
+    setImportUrl('');
   };
 
   const handleImportUrl = async () => {
@@ -114,59 +119,60 @@ export function ManualPropertyForm() {
     }
 
     setIsImporting(true);
+    setImportError(null);
 
-    // Simular extração de dados da URL (em produção, usaria um scraper)
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const result = await importPropertyFromUrl(importUrl);
 
-    // Dados simulados extraídos da URL
-    const extractedData: PropertyFormData = {
-      title: 'Casa Importada - ' + new URL(importUrl).hostname,
-      type: 'casa',
-      price: '250000',
-      original_price: '320000',
-      address_street: 'Endereço extraído do anúncio',
-      address_neighborhood: 'Bairro Exemplo',
-      address_city: 'Fortaleza',
-      address_state: 'CE',
-      address_zipcode: '',
-      bedrooms: '3',
-      bathrooms: '2',
-      area: '150',
-      parking_spaces: '2',
-      description: 'Descrição extraída automaticamente do anúncio. Você pode editar antes de aprovar.',
-      images: [
-        'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80',
-      ],
-      accepts_fgts: true,
-      accepts_financing: true,
-      caixa_link: importUrl,
-    };
-
-    setImportedData(extractedData);
-    setFormData(extractedData);
-    setIsImporting(false);
-    toast.success('Dados extraídos!', {
-      description: 'Revise as informações antes de aprovar.',
-    });
-  };
-
-  const handleApproveImport = async () => {
-    setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    toast.success('Imóvel importado com sucesso!');
-    
-    setFormData(initialFormData);
-    setImportedData(null);
-    setImportUrl('');
-    setShowForm(false);
-    setIsSubmitting(false);
+      if (result.success && result.data) {
+        // Converter dados importados para o formato do formulário
+        const imported = result.data;
+        setImportedData(imported);
+        setFormData({
+          title: imported.title || '',
+          type: imported.type || 'casa',
+          price: imported.price || '',
+          original_price: imported.original_price || '',
+          address_street: imported.address_street || '',
+          address_neighborhood: imported.address_neighborhood || '',
+          address_city: imported.address_city || '',
+          address_state: imported.address_state || 'CE',
+          address_zipcode: '',
+          bedrooms: imported.bedrooms || '',
+          bathrooms: imported.bathrooms || '',
+          area: imported.area || '',
+          parking_spaces: imported.parking_spaces || '',
+          description: imported.description || '',
+          images: imported.images || [],
+          accepts_fgts: imported.accepts_fgts || false,
+          accepts_financing: imported.accepts_financing || true,
+          caixa_link: imported.source_url || importUrl,
+        });
+        
+        toast.success('Dados extraídos com sucesso!', {
+          description: 'Revise as informações e complete os campos faltantes.',
+        });
+      } else {
+        setImportError(result.error || 'Não foi possível importar os dados');
+        toast.error('Erro ao importar', {
+          description: result.error || 'Não foi possível importar os dados da URL',
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      setImportError(errorMsg);
+      toast.error('Erro ao importar', {
+        description: errorMsg,
+      });
+    } finally {
+      setIsImporting(false);
+    }
   };
 
   return (
     <Card className="border-primary/20 shadow-lg overflow-hidden">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <CardTitle className="text-xl flex items-center gap-2">
               <div className="h-10 w-10 rounded-lg hero-gradient flex items-center justify-center">
@@ -186,6 +192,7 @@ export function ManualPropertyForm() {
                 setFormData(initialFormData);
                 setImportedData(null);
                 setImportUrl('');
+                setImportError(null);
               }
             }}
             className={!showForm ? 'hero-gradient' : ''}
@@ -212,8 +219,9 @@ export function ManualPropertyForm() {
                     setActiveTab('manual');
                     setImportedData(null);
                     setFormData(initialFormData);
+                    setImportError(null);
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                     activeTab === 'manual'
                       ? 'bg-background shadow-sm text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
@@ -227,8 +235,9 @@ export function ManualPropertyForm() {
                   onClick={() => {
                     setActiveTab('import');
                     setFormData(initialFormData);
+                    setImportError(null);
                   }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                     activeTab === 'import'
                       ? 'bg-background shadow-sm text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
@@ -247,24 +256,33 @@ export function ManualPropertyForm() {
                   className="space-y-6"
                 >
                   <div className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20">
-                    <div className="flex items-start gap-4">
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
                       <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                         <Sparkles className="h-6 w-6 text-primary" />
                       </div>
-                      <div className="flex-1">
+                      <div className="flex-1 w-full">
                         <h3 className="font-semibold text-lg mb-1">Importação Automática</h3>
                         <p className="text-muted-foreground text-sm mb-4">
                           Cole o link de um anúncio de imóvel e extrairemos automaticamente todas as informações. 
                           Você poderá revisar e editar antes de aprovar.
                         </p>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <div className="relative flex-1">
                             <ExternalLink className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                               placeholder="https://www.exemplo.com/imovel/123"
                               value={importUrl}
-                              onChange={(e) => setImportUrl(e.target.value)}
+                              onChange={(e) => {
+                                setImportUrl(e.target.value);
+                                setImportError(null);
+                              }}
                               className="pl-10"
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleImportUrl();
+                                }
+                              }}
                             />
                           </div>
                           <Button
@@ -275,7 +293,7 @@ export function ManualPropertyForm() {
                             {isImporting ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Extraindo...
+                                Importando...
                               </>
                             ) : (
                               <>
@@ -285,12 +303,23 @@ export function ManualPropertyForm() {
                             )}
                           </Button>
                         </div>
+                        
+                        {importError && (
+                          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
+                            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">Erro ao importar</p>
+                              <p className="text-sm text-muted-foreground">{importError}</p>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-center text-muted-foreground text-sm py-8">
-                    <p>Sites suportados: ZAP Imóveis, OLX, Viva Real, Caixa e outros</p>
+                  <div className="text-center text-muted-foreground text-sm py-4 space-y-2">
+                    <p className="font-medium">Sites suportados:</p>
+                    <p>ZAP Imóveis, OLX, Viva Real, Caixa Econômica e outros</p>
                   </div>
                 </motion.div>
               )}
@@ -300,14 +329,20 @@ export function ManualPropertyForm() {
                 <motion.form
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  onSubmit={importedData ? (e) => { e.preventDefault(); handleApproveImport(); } : handleSubmit}
+                  onSubmit={handleSubmit}
                   className="space-y-8"
                 >
                   {importedData && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                      <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-                        ⚠️ Dados importados automaticamente. Revise as informações antes de aprovar.
-                      </p>
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-amber-700 dark:text-amber-400 font-medium">
+                          Dados importados automaticamente
+                        </p>
+                        <p className="text-amber-600 dark:text-amber-500 text-sm mt-1">
+                          Revise e complete as informações antes de aprovar. Campos em branco precisam ser preenchidos manualmente.
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -557,13 +592,14 @@ export function ManualPropertyForm() {
                   </div>
 
                   {/* Submit */}
-                  <div className="flex justify-end gap-3 pt-6 border-t">
+                  <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t">
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => {
                         setShowForm(false);
                         setImportedData(null);
+                        setImportUrl('');
                       }}
                     >
                       Cancelar
