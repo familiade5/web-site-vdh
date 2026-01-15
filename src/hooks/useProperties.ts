@@ -87,6 +87,8 @@ export interface ScrapingLog {
   created_at: string;
 }
 
+export type CreatePropertyInput = Omit<DbProperty, 'id' | 'external_id' | 'created_at' | 'updated_at' | 'sold_at'>;
+
 // Hook para buscar propriedades
 export function useDbProperties() {
   return useQuery({
@@ -99,6 +101,31 @@ export function useDbProperties() {
 
       if (error) throw error;
       return data as DbProperty[];
+    },
+  });
+}
+
+// Hook para criar uma nova propriedade manualmente
+export function useCreateProperty() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (property: CreatePropertyInput) => {
+      const { data, error } = await supabase
+        .from('properties')
+        .insert([property])
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success('Imóvel cadastrado com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['db-properties'] });
+    },
+    onError: (error) => {
+      toast.error('Erro ao cadastrar imóvel: ' + error.message);
     },
   });
 }
