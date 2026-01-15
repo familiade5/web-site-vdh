@@ -130,6 +130,193 @@ export function useCreateProperty() {
   });
 }
 
+// Hook para inserir imóveis de exemplo
+export function useSeedExampleProperties() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const exampleProperties: CreatePropertyInput[] = [
+        {
+          title: 'Casa 3 Quartos com Piscina em Fortaleza',
+          type: 'casa',
+          status: 'available',
+          price: 285000,
+          original_price: 380000,
+          discount: 25,
+          address_street: 'Rua das Palmeiras, 450',
+          address_neighborhood: 'Aldeota',
+          address_city: 'Fortaleza',
+          address_state: 'CE',
+          address_zipcode: '60150-000',
+          bedrooms: 3,
+          bathrooms: 2,
+          area: 180,
+          parking_spaces: 2,
+          description: 'Excelente casa com piscina, área gourmet e acabamento de primeira. Localização privilegiada.',
+          images: [
+            'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800',
+            'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800',
+            'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800',
+          ],
+          accepts_fgts: true,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+        {
+          title: 'Apartamento 2 Quartos Vista Mar',
+          type: 'apartamento',
+          status: 'available',
+          price: 195000,
+          original_price: 260000,
+          discount: 25,
+          address_street: 'Av. Beira Mar, 2500',
+          address_neighborhood: 'Meireles',
+          address_city: 'Fortaleza',
+          address_state: 'CE',
+          address_zipcode: '60165-121',
+          bedrooms: 2,
+          bathrooms: 1,
+          area: 75,
+          parking_spaces: 1,
+          description: 'Apartamento com vista para o mar, prédio com área de lazer completa.',
+          images: [
+            'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
+            'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=800',
+          ],
+          accepts_fgts: true,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+        {
+          title: 'Casa Duplex 4 Suítes em Recife',
+          type: 'casa',
+          status: 'available',
+          price: 420000,
+          original_price: 550000,
+          discount: 24,
+          address_street: 'Rua do Sol, 100',
+          address_neighborhood: 'Boa Viagem',
+          address_city: 'Recife',
+          address_state: 'PE',
+          address_zipcode: '51020-000',
+          bedrooms: 4,
+          bathrooms: 4,
+          area: 280,
+          parking_spaces: 3,
+          description: 'Casa duplex de alto padrão com 4 suítes, piscina e churrasqueira.',
+          images: [
+            'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800',
+            'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800',
+          ],
+          accepts_fgts: false,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+        {
+          title: 'Terreno 500m² em Salvador',
+          type: 'terreno',
+          status: 'available',
+          price: 89000,
+          original_price: 120000,
+          discount: 26,
+          address_street: null,
+          address_neighborhood: 'Piatã',
+          address_city: 'Salvador',
+          address_state: 'BA',
+          address_zipcode: '41650-000',
+          bedrooms: null,
+          bathrooms: null,
+          area: 500,
+          parking_spaces: null,
+          description: 'Terreno plano, excelente para construção, documentação em dia.',
+          images: [
+            'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800',
+          ],
+          accepts_fgts: false,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+        {
+          title: 'Apartamento Vendido - Exemplo',
+          type: 'apartamento',
+          status: 'sold',
+          price: 175000,
+          original_price: 230000,
+          discount: 24,
+          address_street: 'Rua das Flores, 200',
+          address_neighborhood: 'Centro',
+          address_city: 'Fortaleza',
+          address_state: 'CE',
+          address_zipcode: '60060-000',
+          bedrooms: 2,
+          bathrooms: 1,
+          area: 65,
+          parking_spaces: 1,
+          description: 'Apartamento vendido através da nossa plataforma.',
+          images: [
+            'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800',
+          ],
+          accepts_fgts: true,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+        {
+          title: 'Casa Vendida - Praia do Futuro',
+          type: 'casa',
+          status: 'sold',
+          price: 320000,
+          original_price: 400000,
+          discount: 20,
+          address_street: 'Av. Zezé Diogo, 1500',
+          address_neighborhood: 'Praia do Futuro',
+          address_city: 'Fortaleza',
+          address_state: 'CE',
+          address_zipcode: '60182-000',
+          bedrooms: 3,
+          bathrooms: 2,
+          area: 200,
+          parking_spaces: 2,
+          description: 'Casa vendida - cliente satisfeito!',
+          images: [
+            'https://images.unsplash.com/photo-1580587771525-78b9dba3b914?w=800',
+          ],
+          accepts_fgts: true,
+          accepts_financing: true,
+          auction_date: null,
+          modality: null,
+          caixa_link: null,
+        },
+      ];
+
+      const { data, error } = await supabase
+        .from('properties')
+        .insert(exampleProperties)
+        .select();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.length} imóveis de exemplo adicionados!`);
+      queryClient.invalidateQueries({ queryKey: ['db-properties'] });
+    },
+    onError: (error) => {
+      toast.error('Erro ao adicionar exemplos: ' + error.message);
+    },
+  });
+}
+
 // Hook para buscar propriedades no staging com verificação de duplicatas
 export function useStagingProperties(status: string = 'pending') {
   return useQuery({
