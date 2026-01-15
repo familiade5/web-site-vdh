@@ -1,14 +1,21 @@
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { HeroSection } from '@/components/home/HeroSection';
+import { FeaturedProperties } from '@/components/home/FeaturedProperties';
+import { HowItWorks } from '@/components/home/HowItWorks';
+import { SoldProperties } from '@/components/home/SoldProperties';
+
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <h1 className="text-4xl font-light tracking-tight text-foreground">
-          Olá
-        </h1>
-        <p className="text-muted-foreground font-light">
-          Site em branco
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1">
+        <HeroSection />
+        <FeaturedProperties />
+        <HowItWorks />
+        <SoldProperties />
+      </main>
+      <Footer />
     </div>
   );
 };
