@@ -35,6 +35,7 @@ import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
 import { importPropertyFromUrl, ImportedPropertyData } from '@/lib/api/property-import';
 import { importPropertyFromScreenshot } from '@/lib/api/property-import-screenshot';
+import { useCreateProperty, CreatePropertyInput } from '@/hooks/useProperties';
 
 type TabType = 'manual' | 'import' | 'screenshot';
 
@@ -84,7 +85,6 @@ export function ManualPropertyForm() {
   const [activeTab, setActiveTab] = useState<TabType>('manual');
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
   const [showForm, setShowForm] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Import by link state
   const [importUrl, setImportUrl] = useState('');
@@ -97,6 +97,10 @@ export function ManualPropertyForm() {
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [isImportingScreenshot, setIsImportingScreenshot] = useState(false);
+
+  // Hook para salvar no banco de dados
+  const createProperty = useCreateProperty();
+  const isSubmitting = createProperty.isPending;
 
   const screenshotPreviewUrl = useMemo(() => {
     return screenshotFile ? URL.createObjectURL(screenshotFile) : null;
@@ -117,19 +121,64 @@ export function ManualPropertyForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Simular salvamento (em produção, salvaria no Supabase)
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Validar campos obrigatórios
+    if (!formData.title.trim()) {
+      toast.error('Título é obrigatório');
+      return;
+    }
+    if (!formData.price || parseFloat(formData.price) <= 0) {
+      toast.error('Preço é obrigatório');
+      return;
+    }
+    if (!formData.address_city.trim()) {
+      toast.error('Cidade é obrigatória');
+      return;
+    }
+    if (!formData.address_neighborhood.trim()) {
+      toast.error('Bairro é obrigatório');
+      return;
+    }
+    if (!formData.area || parseFloat(formData.area) <= 0) {
+      toast.error('Área é obrigatória');
+      return;
+    }
 
-    toast.success('Imóvel cadastrado com sucesso!', {
-      description: 'O imóvel foi adicionado e está aguardando aprovação.',
+    // Converter formData para CreatePropertyInput
+    const propertyInput: CreatePropertyInput = {
+      title: formData.title.trim(),
+      type: formData.type || 'casa',
+      status: 'available',
+      price: parseFloat(formData.price) || 0,
+      original_price: formData.original_price ? parseFloat(formData.original_price) : null,
+      discount: formData.original_price && formData.price 
+        ? Math.round(((parseFloat(formData.original_price) - parseFloat(formData.price)) / parseFloat(formData.original_price)) * 100)
+        : null,
+      address_street: formData.address_street.trim() || null,
+      address_neighborhood: formData.address_neighborhood.trim(),
+      address_city: formData.address_city.trim(),
+      address_state: formData.address_state || 'CE',
+      address_zipcode: formData.address_zipcode.trim() || null,
+      bedrooms: formData.bedrooms ? parseInt(formData.bedrooms) : null,
+      bathrooms: formData.bathrooms ? parseInt(formData.bathrooms) : null,
+      area: parseFloat(formData.area) || 0,
+      parking_spaces: formData.parking_spaces ? parseInt(formData.parking_spaces) : null,
+      images: formData.images.length > 0 ? formData.images : [],
+      description: formData.description.trim() || null,
+      accepts_fgts: formData.accepts_fgts,
+      accepts_financing: formData.accepts_financing,
+      auction_date: null,
+      modality: null,
+      caixa_link: formData.caixa_link.trim() || null,
+    };
+
+    createProperty.mutate(propertyInput, {
+      onSuccess: () => {
+        setFormData(initialFormData);
+        setShowForm(false);
+        resetImportState();
+      },
     });
-
-    setFormData(initialFormData);
-    setShowForm(false);
-    setIsSubmitting(false);
-    resetImportState();
   };
 
   const handleImportUrl = async () => {
