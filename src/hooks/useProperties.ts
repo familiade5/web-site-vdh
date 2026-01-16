@@ -34,8 +34,7 @@ export interface DbProperty {
 
 export interface StagingProperty {
   id: string;
-  external_id: string;
-  raw_data: any;
+  external_id: string | null;
   title: string | null;
   type: string | null;
   price: number | null;
@@ -48,16 +47,15 @@ export interface StagingProperty {
   bathrooms: number | null;
   area: number | null;
   parking_spaces: number | null;
-  images: string[];
+  images: string[] | null;
   description: string | null;
-  accepts_fgts: boolean;
-  accepts_financing: boolean;
+  accepts_fgts: boolean | null;
+  accepts_financing: boolean | null;
   auction_date: string | null;
   modality: string | null;
   caixa_link: string | null;
-  status: string;
-  scraped_at: string;
-  reviewed_at: string | null;
+  status: string | null;
+  scraped_at: string | null;
   created_at: string;
 }
 
@@ -65,26 +63,20 @@ export interface ScrapingConfig {
   id: string;
   name: string;
   states: string[];
-  property_types: string[];
-  modalities: string[];
-  min_price: number;
-  max_price: number;
-  is_active: boolean;
-  last_run_at: string | null;
+  enabled: boolean;
+  last_run: string | null;
   created_at: string;
-  updated_at: string;
 }
 
 export interface ScrapingLog {
   id: string;
-  config_id: string;
+  config_id: string | null;
   started_at: string;
   finished_at: string | null;
   status: string;
-  properties_found: number;
-  properties_new: number;
+  properties_found: number | null;
+  properties_new: number | null;
   error_message: string | null;
-  created_at: string;
 }
 
 export type CreatePropertyInput = Omit<DbProperty, 'id' | 'external_id' | 'created_at' | 'updated_at' | 'sold_at'>;
