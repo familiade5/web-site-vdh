@@ -87,6 +87,7 @@ export function ManualPropertyForm() {
   // Import by link state
   const [importUrl, setImportUrl] = useState('');
   const [importedData, setImportedData] = useState<ImportedPropertyData | null>(null);
+  const [importScreenshot, setImportScreenshot] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
@@ -109,6 +110,7 @@ export function ManualPropertyForm() {
     setShowForm(false);
     setIsSubmitting(false);
     setImportedData(null);
+    setImportScreenshot(null);
     setImportUrl('');
   };
 
@@ -128,6 +130,13 @@ export function ManualPropertyForm() {
         // Converter dados importados para o formato do formulário
         const imported = result.data;
         setImportedData(imported);
+        const screenshot = (result as any).screenshot as string | null | undefined;
+        const normalizedScreenshot = screenshot
+          ? screenshot.startsWith('http') || screenshot.startsWith('data:')
+            ? screenshot
+            : `data:image/png;base64,${screenshot}`
+          : null;
+        setImportScreenshot(normalizedScreenshot);
         setFormData({
           title: imported.title || '',
           type: imported.type || 'casa',
@@ -148,11 +157,13 @@ export function ManualPropertyForm() {
           accepts_financing: imported.accepts_financing || true,
           caixa_link: imported.source_url || importUrl,
         });
-        
+
         toast.success('Dados extraídos com sucesso!', {
           description: 'Revise as informações e complete os campos faltantes.',
         });
       } else {
+        setImportedData(null);
+        setImportScreenshot(null);
         setImportError(result.error || 'Não foi possível importar os dados');
         toast.error('Erro ao importar', {
           description: result.error || 'Não foi possível importar os dados da URL',
@@ -160,6 +171,8 @@ export function ManualPropertyForm() {
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      setImportedData(null);
+      setImportScreenshot(null);
       setImportError(errorMsg);
       toast.error('Erro ao importar', {
         description: errorMsg,
@@ -191,6 +204,7 @@ export function ManualPropertyForm() {
               if (!showForm) {
                 setFormData(initialFormData);
                 setImportedData(null);
+                setImportScreenshot(null);
                 setImportUrl('');
                 setImportError(null);
               }
@@ -218,6 +232,7 @@ export function ManualPropertyForm() {
                   onClick={() => {
                     setActiveTab('manual');
                     setImportedData(null);
+                    setImportScreenshot(null);
                     setFormData(initialFormData);
                     setImportError(null);
                   }}
@@ -234,6 +249,8 @@ export function ManualPropertyForm() {
                   type="button"
                   onClick={() => {
                     setActiveTab('import');
+                    setImportedData(null);
+                    setImportScreenshot(null);
                     setFormData(initialFormData);
                     setImportError(null);
                   }}
@@ -333,16 +350,30 @@ export function ManualPropertyForm() {
                   className="space-y-8"
                 >
                   {importedData && (
-                    <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
-                      <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-amber-700 dark:text-amber-400 font-medium">
-                          Dados importados automaticamente
-                        </p>
-                        <p className="text-amber-600 dark:text-amber-500 text-sm mt-1">
-                          Revise e complete as informações antes de aprovar. Campos em branco precisam ser preenchidos manualmente.
-                        </p>
+                    <div className="space-y-4">
+                      <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-amber-700 dark:text-amber-400 font-medium">
+                            Dados importados automaticamente
+                          </p>
+                          <p className="text-amber-600 dark:text-amber-500 text-sm mt-1">
+                            Revise e complete as informações antes de aprovar. Campos em branco precisam ser preenchidos manualmente.
+                          </p>
+                        </div>
                       </div>
+
+                      {importScreenshot && (
+                        <div className="p-4 bg-muted/30 border border-border rounded-lg">
+                          <p className="text-sm font-medium mb-3">Screenshot do anúncio (para conferência)</p>
+                          <img
+                            src={importScreenshot}
+                            alt="Screenshot da página do anúncio do imóvel"
+                            loading="lazy"
+                            className="w-full max-w-full rounded-md border border-border"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -599,6 +630,7 @@ export function ManualPropertyForm() {
                       onClick={() => {
                         setShowForm(false);
                         setImportedData(null);
+                        setImportScreenshot(null);
                         setImportUrl('');
                       }}
                     >
