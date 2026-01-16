@@ -264,7 +264,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ['markdown'],
+        formats: ['markdown', 'screenshot'],
         onlyMainContent: true,
         waitFor: 2000, // Wait for dynamic content
       }),
@@ -302,9 +302,10 @@ Deno.serve(async (req) => {
     console.log('Extracted property data:', JSON.stringify(propertyData, null, 2));
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         data: propertyData,
+        screenshot: scrapeResult.data?.screenshot || null,
         rawContent: markdown.substring(0, 2000), // Send first 2000 chars for debugging
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
