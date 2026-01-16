@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,13 +13,13 @@ import {
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { 
-  Plus, 
-  Home, 
-  MapPin, 
-  DollarSign, 
-  Bed, 
-  Ruler, 
+import {
+  Plus,
+  Home,
+  MapPin,
+  DollarSign,
+  Bed,
+  Ruler,
   Camera,
   Loader2,
   CheckCircle2,
@@ -28,13 +28,15 @@ import {
   Sparkles,
   ExternalLink,
   AlertCircle,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { NORTHEAST_STATES, PROPERTY_TYPES } from '@/types/property';
 import { ImageUpload } from './ImageUpload';
 import { toast } from 'sonner';
 import { importPropertyFromUrl, ImportedPropertyData } from '@/lib/api/property-import';
+import { importPropertyFromScreenshot } from '@/lib/api/property-import-screenshot';
 
-type TabType = 'manual' | 'import';
+type TabType = 'manual' | 'import' | 'screenshot';
 
 interface PropertyFormData {
   title: string;
@@ -83,7 +85,7 @@ export function ManualPropertyForm() {
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
   const [showForm, setShowForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Import by link state
   const [importUrl, setImportUrl] = useState('');
   const [importedData, setImportedData] = useState<ImportedPropertyData | null>(null);
@@ -91,8 +93,26 @@ export function ManualPropertyForm() {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
 
+  // Import by screenshot state
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
+  const [isImportingScreenshot, setIsImportingScreenshot] = useState(false);
+
+  const screenshotPreviewUrl = useMemo(() => {
+    return screenshotFile ? URL.createObjectURL(screenshotFile) : null;
+  }, [screenshotFile]);
+
   const handleChange = (field: keyof PropertyFormData, value: string | boolean | string[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const resetImportState = () => {
+    setImportedData(null);
+    setImportScreenshot(null);
+    setImportUrl('');
+    setImportError(null);
+    setScreenshotFile(null);
+    setScreenshotError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,17 +121,15 @@ export function ManualPropertyForm() {
 
     // Simular salvamento (em produção, salvaria no Supabase)
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
+
     toast.success('Imóvel cadastrado com sucesso!', {
       description: 'O imóvel foi adicionado e está aguardando aprovação.',
     });
-    
+
     setFormData(initialFormData);
     setShowForm(false);
     setIsSubmitting(false);
-    setImportedData(null);
-    setImportScreenshot(null);
-    setImportUrl('');
+    resetImportState();
   };
 
   const handleImportUrl = async () => {
@@ -127,7 +145,6 @@ export function ManualPropertyForm() {
       const result = await importPropertyFromUrl(importUrl);
 
       if (result.success && result.data) {
-        // Converter dados importados para o formato do formulário
         const imported = result.data;
         setImportedData(imported);
         const screenshot = (result as any).screenshot as string | null | undefined;
@@ -137,6 +154,7 @@ export function ManualPropertyForm() {
             : `data:image/png;base64,${screenshot}`
           : null;
         setImportScreenshot(normalizedScreenshot);
+
         setFormData({
           title: imported.title || '',
           type: imported.type || 'casa',
@@ -182,6 +200,73 @@ export function ManualPropertyForm() {
     }
   };
 
+  const fileToDataUrl = (file: File) =>
+    new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error('Não foi possível ler o arquivo'));
+      reader.readAsDataURL(file);
+    });
+
+  const handleImportScreenshot = async () => {
+    if (!screenshotFile) {
+      toast.error('Envie um screenshot do anúncio');
+      return;
+    }
+
+    setIsImportingScreenshot(true);
+    setScreenshotError(null);
+
+    try {
+      const imageDataUrl = await fileToDataUrl(screenshotFile);
+      const result = await importPropertyFromScreenshot(imageDataUrl);
+
+      if (result.success && result.data) {
+        const imported = result.data;
+        setImportedData(imported);
+        setImportScreenshot(result.screenshot || imageDataUrl);
+
+        setFormData({
+          title: imported.title || '',
+          type: imported.type || 'casa',
+          price: imported.price || '',
+          original_price: imported.original_price || '',
+          address_street: imported.address_street || '',
+          address_neighborhood: imported.address_neighborhood || '',
+          address_city: imported.address_city || '',
+          address_state: imported.address_state || 'CE',
+          address_zipcode: '',
+          bedrooms: imported.bedrooms || '',
+          bathrooms: imported.bathrooms || '',
+          area: imported.area || '',
+          parking_spaces: imported.parking_spaces || '',
+          description: imported.description || '',
+          images: imported.images || [],
+          accepts_fgts: imported.accepts_fgts || false,
+          accepts_financing: imported.accepts_financing ?? true,
+          caixa_link: imported.source_url || '',
+        });
+
+        toast.success('Dados extraídos do screenshot!', {
+          description: 'Revise e complete os campos antes de salvar.',
+        });
+      } else {
+        setScreenshotError(result.error || 'Não foi possível extrair informações do screenshot');
+        toast.error('Erro ao importar', {
+          description: result.error || 'Não foi possível extrair informações do screenshot',
+        });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      setScreenshotError(errorMsg);
+      toast.error('Erro ao importar', {
+        description: errorMsg,
+      });
+    } finally {
+      setIsImportingScreenshot(false);
+    }
+  };
+
   return (
     <Card className="border-primary/20 shadow-lg overflow-hidden">
       <CardHeader className="pb-3">
@@ -203,10 +288,7 @@ export function ManualPropertyForm() {
               setShowForm(!showForm);
               if (!showForm) {
                 setFormData(initialFormData);
-                setImportedData(null);
-                setImportScreenshot(null);
-                setImportUrl('');
-                setImportError(null);
+                resetImportState();
               }
             }}
             className={!showForm ? 'hero-gradient' : ''}
@@ -226,15 +308,13 @@ export function ManualPropertyForm() {
           >
             <CardContent className="pt-0">
               {/* Tabs */}
-              <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg w-fit">
+              <div className="flex gap-2 mb-6 p-1 bg-muted rounded-lg w-fit flex-wrap">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('manual');
-                    setImportedData(null);
-                    setImportScreenshot(null);
+                    resetImportState();
                     setFormData(initialFormData);
-                    setImportError(null);
                   }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                     activeTab === 'manual'
@@ -249,10 +329,8 @@ export function ManualPropertyForm() {
                   type="button"
                   onClick={() => {
                     setActiveTab('import');
-                    setImportedData(null);
-                    setImportScreenshot(null);
+                    resetImportState();
                     setFormData(initialFormData);
-                    setImportError(null);
                   }}
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
                     activeTab === 'import'
@@ -262,6 +340,22 @@ export function ManualPropertyForm() {
                 >
                   <LinkIcon className="h-4 w-4" />
                   Importar por Link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('screenshot');
+                    resetImportState();
+                    setFormData(initialFormData);
+                  }}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-md text-sm font-medium transition-all ${
+                    activeTab === 'screenshot'
+                      ? 'bg-background shadow-sm text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                  Importar por Screenshot
                 </button>
               </div>
 
@@ -278,10 +372,9 @@ export function ManualPropertyForm() {
                         <Sparkles className="h-6 w-6 text-primary" />
                       </div>
                       <div className="flex-1 w-full">
-                        <h3 className="font-semibold text-lg mb-1">Importação Automática</h3>
+                        <h3 className="font-semibold text-lg mb-1">Importação Automática (link)</h3>
                         <p className="text-muted-foreground text-sm mb-4">
-                          Cole o link de um anúncio de imóvel e extrairemos automaticamente todas as informações. 
-                          Você poderá revisar e editar antes de aprovar.
+                          Cole o link de um anúncio e extrairemos as informações. Você poderá revisar e editar antes de salvar.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3">
                           <div className="relative flex-1">
@@ -320,7 +413,7 @@ export function ManualPropertyForm() {
                             )}
                           </Button>
                         </div>
-                        
+
                         {importError && (
                           <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
                             <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
@@ -337,6 +430,79 @@ export function ManualPropertyForm() {
                   <div className="text-center text-muted-foreground text-sm py-4 space-y-2">
                     <p className="font-medium">Sites suportados:</p>
                     <p>ZAP Imóveis, OLX, Viva Real, Caixa Econômica e outros</p>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Import by Screenshot Tab */}
+              {activeTab === 'screenshot' && !importedData && (
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                  <div className="p-6 bg-gradient-to-br from-primary/5 to-primary/10 rounded-xl border border-primary/20">
+                    <div className="flex flex-col sm:flex-row items-start gap-4">
+                      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="h-6 w-6 text-primary" />
+                      </div>
+                      <div className="flex-1 w-full">
+                        <h3 className="font-semibold text-lg mb-1">Importação Automática (screenshot)</h3>
+                        <p className="text-muted-foreground text-sm mb-4">
+                          Envie um screenshot do anúncio. Vamos ler a imagem e preencher o formulário automaticamente.
+                        </p>
+
+                        <div className="grid gap-3">
+                          <Input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0] || null;
+                              setScreenshotFile(file);
+                              setScreenshotError(null);
+                            }}
+                          />
+
+                          {screenshotPreviewUrl && (
+                            <img
+                              src={screenshotPreviewUrl}
+                              alt="Preview do screenshot do anúncio"
+                              loading="lazy"
+                              className="w-full max-w-full rounded-md border border-border"
+                            />
+                          )}
+
+                          <Button
+                            onClick={handleImportScreenshot}
+                            disabled={isImportingScreenshot || !screenshotFile}
+                            className="hero-gradient w-full sm:w-fit"
+                          >
+                            {isImportingScreenshot ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Importando...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="h-4 w-4 mr-2" />
+                                Importar do Screenshot
+                              </>
+                            )}
+                          </Button>
+                        </div>
+
+                        {screenshotError && (
+                          <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-lg flex items-start gap-2">
+                            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-destructive">Erro ao importar</p>
+                              <p className="text-sm text-muted-foreground">{screenshotError}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center text-muted-foreground text-sm py-4 space-y-2">
+                    <p className="font-medium">Dica:</p>
+                    <p>Se puder, tire o screenshot mostrando preço, endereço e características (quartos/banheiros/área).</p>
                   </div>
                 </motion.div>
               )}

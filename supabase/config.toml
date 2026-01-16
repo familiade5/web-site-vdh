@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.import-property]
 verify_jwt = false
+
+[functions.import-property-screenshot]
+verify_jwt = false
